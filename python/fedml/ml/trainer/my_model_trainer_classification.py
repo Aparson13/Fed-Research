@@ -1,5 +1,7 @@
 import torch
 from torch import nn
+import numpy as np
+import copy
 
 from ...core.alg_frame.client_trainer import ClientTrainer
 from ...core.dp.fedml_differential_privacy import FedMLDifferentialPrivacy
@@ -31,6 +33,23 @@ class ModelTrainerCLS(ClientTrainer):
                 filter(lambda p: p.requires_grad, self.model.parameters()),
                 lr=args.learning_rate,
             )
+        
+        elif args.client_optimizer == "UCB":
+            self.A_local += np.outer(train_data, train_data)
+            self.b_local += train_data * click
+            self.numObs_local += 1
+
+            self.A_uploadbuffer += np.outer(train_data, train_data)
+            self.b_uploadbuffer += train_data * click
+            self.numObs_uploadbuffer += 1
+
+            self.AInv = np.linalg.inv(self.A_local+self.lambda_ * np.identity(n=self.d))
+            self.UserTheta = np.dot(self.AInv, self.b_local)
+
+            self.alpha_t = self.NoiseScale * np.sqrt(
+            self.d * np.log(1 + (self.numObs_local) / (self.d * self.lambda_)) + 2 * np.log(1 / self.delta_)) + np.sqrt(
+            self.lambda_)
+
         else:
             optimizer = torch.optim.Adam(
                 filter(lambda p: p.requires_grad, self.model.parameters()),
@@ -161,3 +180,22 @@ class ModelTrainerCLS(ClientTrainer):
                 metrics["test_loss"] += loss.item() * target.size(0)
                 metrics["test_total"] += target.size(0)
         return metrics
+    
+    def getUCB(self, alpha, article_FeatureVector):
+        if alpha == -1:
+            alpha = self.alpha_t
+
+        mean = np.dot(self.UserTheta, article_FeatureVector)
+        var = np.sqrt(np.dot(np.dot(article_FeatureVector, self.AInv), article_FeatureVector))
+        pta = mean + alpha * var
+        return pt
+
+    def getReward(self, user, pickedArticle):
+        inner_prod = np.dot(user.theta, pickedArticle.featureVector)
+		if self.reward_model == 'linear':
+			reward = inner_prod
+		elif self.reward_model == 'sigmoid':
+			reward = sigmoid(inner_prod)
+		else:
+			raise ValueError
+		return reward
