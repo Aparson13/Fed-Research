@@ -14,15 +14,15 @@ class MyModelTrainer(ClientTrainer):
        self.cpu_transfer = False if not hasattr(self.args, "cpu_transfer") else self.args.cpu_transfer
 
 
-    def train(self, A_local, b_local, A_uploadbuffer, b_uploadbuffer, numObs_local, AInv, UserTheta,
-                alpha_t, d, articlepool, device, args):
+    def train(self, A_local, b_local, A_uploadbuffer, b_uploadbuffer, numObs_local, numObs_uploadbuffer, alpha_t, 
+              d, articlepool, threshold, device, delta_, lambda_, args):
 
         maxPTA = float('-inf')
         articlePicked = None
-        numerator = np.linalg.det(A_local+self.lambda_ * np.identity(n=self.d))
-        denominator = np.linalg.det(A_local-A_uploadbuffer+self.lambda_ * np.identity(n=self.d))
+        numerator = np.linalg.det(A_local+lambda_ * np.identity(n=d))
+        denominator = np.linalg.det(A_local-A_uploadbuffer+self.lambda_ * np.identity(n=d))
 
-        while(np.log(numerator/denominator)*(self.numObs_uploadbuffer) < self.threshold):
+        while(np.log(numerator/denominator)*(self.numObs_uploadbuffer) < threshold and self.sync == False):
             for x in articlepool: 
                 x_pta = self.getUCB(alpha_t, x.featureVector)
                 # pick article with highest UCB score
@@ -42,21 +42,21 @@ class MyModelTrainer(ClientTrainer):
             
             A_local += np.outer(articlePicked.featureVector, articlePicked.featureVector)
             b_local += articlePicked.FeatureVector * reward
-            self.numObs_local += 1
+            numObs_local += 1
 
             A_uploadbuffer += np.outer(articlePicked.featureVector, articlePicked.featureVector)
             b_uploadbuffer += articlePicked.featureVector * reward
             numObs_uploadbuffer += 1
 
-            AInv = np.linalg.inv(self.A_local+self.lambda_ * np.identity(n=self.d))
-            UserTheta = np.dot(self.AInv, self.b_local)
+            AInv = np.linalg.inv(A_local+lambda_ * np.identity(n=d))
+            UserTheta = np.dot(AInv, b_local)
 
             self.alpha_t = self.NoiseScale * np.sqrt(
-                self.d * np.log(1 + (self.numObs_local) / (self.d * self.lambda_)) + 2 * np.log(1 / self.delta_)) + np.sqrt(
-                self.lambda_)
+                d * np.log(1 + (numObs_local) / (d * lambda_)) + 2 * np.log(1 / delta_)) + np.sqrt(
+                lambda_)
             
-            numerator = np.linalg.det(self.A_local+self.lambda_ * np.identity(n=self.d))
-            denominator = np.linalg.det(self.A_local-self.A_uploadbuffer+self.lambda_ * np.identity(n=self.d))
+            numerator = np.linalg.det(self.A_local+self.lambda_ * np.identity(n=d))
+            denominator = np.linalg.det(A_local-A_uploadbuffer+lambda_ * np.identity(n=self.d))
 
         return A_uploadbuffer, b_uploadbuffer
 

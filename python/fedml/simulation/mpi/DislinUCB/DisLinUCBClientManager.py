@@ -34,6 +34,11 @@ class DisLinUCBClientManager(FedMLCommManager):
             self.handle_message_receive_model_from_server,
         )
 
+        self.register_message_receive_handler(
+            MyMessage.MSG_TYPE_S2C_GLOBAL_SYNC,
+            self.recieve_global_sync_signal,
+        )
+
     def handle_message_init(self, msg_params):
         global_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         # Recieving W and U from server to client
@@ -63,6 +68,9 @@ class DisLinUCBClientManager(FedMLCommManager):
             # post_complete_message_to_sweep_process(self.args)
             self.finish()
 
+    def recieve_global_sync_signal(self):
+        self.trainer.sync = True
+
     def send_model_to_server(self, receive_id, weights, local_sample_num):
         message = Message(
             MyMessage.MSG_TYPE_C2S_SEND_MODEL_TO_SERVER,
@@ -73,6 +81,7 @@ class DisLinUCBClientManager(FedMLCommManager):
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, weights)
         message.add_params(MyMessage.MSG_ARG_KEY_NUM_SAMPLES, local_sample_num)
         self.send_message(message)
+        
 
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.args.round_idx)

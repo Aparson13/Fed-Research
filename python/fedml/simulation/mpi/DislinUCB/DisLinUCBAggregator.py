@@ -60,6 +60,15 @@ class DisLinUCBAggregator(object):
         # self.sample_num_dict[index] = sample_num
         self.flag_client_model_uploaded_dict[index] = True
 
+    def check_whether_one_recieve(self):
+        logging.debug("worker_num = {}".format(self.worker_num))
+        for idx in range(self.worker_num):
+            if self.flag_client_model_uploaded_dict[idx]:
+                return True
+        for idx in range(self.worker_num):
+            self.flag_client_model_uploaded_dict[idx] = False
+        return False
+
     def check_whether_all_receive(self):
         logging.debug("worker_num = {}".format(self.worker_num))
         for idx in range(self.worker_num):
@@ -68,6 +77,7 @@ class DisLinUCBAggregator(object):
         for idx in range(self.worker_num):
             self.flag_client_model_uploaded_dict[idx] = False
         return True
+
 
     def aggregate(self):
         start_time = time.time()

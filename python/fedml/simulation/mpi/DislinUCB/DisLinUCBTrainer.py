@@ -1,6 +1,10 @@
 from .utils import transform_tensor_to_list
 import numpy as np
+from .ArticleManager import ArticleManager
+
+from util_functions import featureUniform, gaussianFeature, dsigmoid, sigmoid
 import copy
+import my_model_trainer
 
 class DisLinUCBTrainer(object):
     def __init__(
@@ -8,26 +12,27 @@ class DisLinUCBTrainer(object):
         client_index,
         device,
         args,
-        ################################# Start
         dim,
         lambda_,
         delta_,
         threshold,
-        ################################# End
+        n_articles,
         model_trainer,
     ):
+        AM = ArticleManager(dim, n_articles, gaussianFeature, argv={'l2_limit': 1}, ArticleGroups=0)
+        self.AM = AM.simulateArticlePool()
         self.trainer = model_trainer
         self.client_index = client_index
         self.device = device
         self.args = args
 
-        ################################### Start
+
 
         self.d = dim
         self.lambda_ = lambda_
         self.delta_ = delta_
         self.A_local = np.zeros((self.d, self.d))
-        self.B_local = np.zeros(self.d)
+        self.b_local = np.zeros(self.d)
         self.numObs_local = 0
         self.A_uploadbuffer = np.zeros((self.d, self.d))
         self.b_uploadbuffer = np.zeros(self.d)
@@ -37,11 +42,6 @@ class DisLinUCBTrainer(object):
         self.UserTheta = np.zeros(self.d)
         self.alpha_t = np.sqrt(self.d * np.log(1 + self.numObs_local)/ (self.d * self.lambda_)) + 2 * np.log(1 / self.delta_) + np.sqrt(self.lambda_)
         self.reward_model = "linear"
-
-        ##################################### End
-    # def update_model(self, weights):
-    #     self.trainer.set_model_params(weights)
-
     
 
     def update_dataset(self, global_model_params, client_index):
@@ -61,12 +61,13 @@ class DisLinUCBTrainer(object):
         self.alpha_t = self.NoiseScale * np.sqrt(
         self.d * np.log(1 + (self.numObs_local) / (self.d * self.lambda_)) + 2 * np.log(1 / self.delta_)) + np.sqrt(
         self.lambda_)
+        self.trainer.sync = False
        
 
     def train(self, round_idx=None):
         self.args.round_idx = round_idx
-        A_uploadbuffer, b_uploadbuffer = self.trainer.train(self.A_local, self.B_local, self.A_upload, self.b_upload, self.numObs_local, self.AInv, self.UserTheta,
-                           self.alpha_t, self.d, self.AM, self.device, self.args)
+        A_uploadbuffer, b_uploadbuffer = self.trainer.train(self.trainer, self.A_local, self.b_local, self.A_uploadbuffer, self.b_uploadbuffer, self.numObs_local, self.numObs_uploadbuffer,
+                           self.alpha_t, self.d, self.AM, self.device, self.delta_, self.lambda_, self.args)
 
 
         return A_uploadbuffer, b_uploadbuffer

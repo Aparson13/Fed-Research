@@ -48,6 +48,7 @@ class DisLinUCBServerManager(FedMLCommManager):
             self.handle_message_receive_model_from_client,
         )
 
+
     def handle_message_receive_model_from_client(self, msg_params):
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
@@ -56,6 +57,16 @@ class DisLinUCBServerManager(FedMLCommManager):
         self.aggregator.add_local_trained_result(
             sender_id - 1, model_params, local_sample_number
         )
+        
+        b_one_recieved = self.aggregtor.check_whether_one_recieve()
+        logging.info("b_all_received = " + str(b_all_received))
+        if b_one_recieved:
+            for receiver_id in range(1, self.size):
+                self.send_sync_signal(
+                receiver_id
+                )
+
+
         b_all_received = self.aggregator.check_whether_all_receive()
         logging.info("b_all_received = " + str(b_all_received))
         if b_all_received:
@@ -111,3 +122,12 @@ class DisLinUCBServerManager(FedMLCommManager):
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, global_model_params)
         message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_INDEX, str(client_index))
         self.send_message(message)
+
+    def send_sync_signal(self, receive_id):
+        message = Message(
+            MyMessage.MSG_TYPE_S2C_GLOBAL_SYNC,
+            self.get_sender_id(),
+            receive_id)
+        self.send_message(message)
+
+    

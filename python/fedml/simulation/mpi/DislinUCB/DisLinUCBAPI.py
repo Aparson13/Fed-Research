@@ -32,8 +32,7 @@ def FedML_DisLinUCB_distributed(
         threshold,
     ] = dataset
 
-    AM = ArticleManager(dimension, n_articles, gaussianFeature, argv={'l2_limit': 1}, ArticleGroups=0)
-    articles = AM.simulateArticlePool()
+    
     FedMLAttacker.get_instance().init(args)
     FedMLDefender.get_instance().init(args)
     FedMLDifferentialPrivacy.get_instance().init(args)
@@ -52,7 +51,6 @@ def FedML_DisLinUCB_distributed(
             delta_,
             threshold,
             server_aggregator,
-            articles,
         )
     else:
         init_client(
@@ -67,8 +65,8 @@ def FedML_DisLinUCB_distributed(
             lambda_,
             delta_,
             threshold,
+            n_articles,
             client_trainer,
-            articles,
         )
 
 
@@ -85,7 +83,6 @@ def init_server(
     delta_,
     threshold,
     server_aggregator,
-    articles,
 ):
     if server_aggregator is None:
         server_aggregator = create_server_aggregator(model, args)
@@ -103,7 +100,6 @@ def init_server(
         device,
         args,
         server_aggregator,
-        articles,
     )
 
     # start the distributed training
@@ -125,7 +121,7 @@ def init_client(
     lambda_,
     delta_,
     threshold,
-    articles,
+    n_articles,
     model_trainer=None,
     
 ):
@@ -143,8 +139,8 @@ def init_client(
         lambda_,
         delta_,
         threshold,
+        n_articles,
         model_trainer,
-        articles,
     )
     client_manager = DisLinUCBClientManager(args, trainer, comm, process_id, size, backend)
     client_manager.run()
