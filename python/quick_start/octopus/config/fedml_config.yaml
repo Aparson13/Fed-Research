@@ -20,7 +20,7 @@ model_args:
   global_model_file_path: "./model_file_cache/global_model.pt"
 
 train_args:
-  federated_optimizer: "FedAvg"
+  federated_optimizer: "DisLinUCB"
   # for CLI running, this can be None; in MLOps deployment, `client_id_list` will be replaced with real-time selected devices
   client_id_list:
   client_num_in_total: 2
