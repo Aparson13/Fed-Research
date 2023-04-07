@@ -22,7 +22,6 @@ class DisLinUCBAggregator(object):
         device,
         args,
         server_aggregator,
-        AM,
 
     ):
         self.dimension = dimension
