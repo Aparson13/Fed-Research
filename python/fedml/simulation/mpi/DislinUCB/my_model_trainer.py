@@ -11,7 +11,7 @@ class MyModelTrainer(ClientTrainer):
 
     def __init__(self, model, args):
        super().__init__(model, args)
-       self.cpu_transfer = False if not hasattr(self.args, "cpu_transfer") else self.args.cpu_transfer
+    #    self.cpu_transfer = False if not hasattr(self.args, "cpu_transfer") else self.args.cpu_transfer
 
 
     def train(self, A_local, b_local, A_uploadbuffer, b_uploadbuffer, numObs_local, numObs_uploadbuffer, alpha_t, 

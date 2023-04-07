@@ -130,9 +130,11 @@ def init_client(
         model_trainer = create_model_trainer(model, args)
     model_trainer.set_id(client_index)
     backend = args.backend
+
+    
+
     trainer = DisLinUCBTrainer(
         client_index,
-        dim,
         device,
         args,
         dim,
