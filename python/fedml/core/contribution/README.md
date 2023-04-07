@@ -1,1 +1,0 @@
-this folder is for proof-of-contribution related algorithms

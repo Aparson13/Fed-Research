@@ -20,7 +20,6 @@ from ..constants import (
     FedML_FEDERATED_OPTIMIZER_HIERACHICAL_FL,
     FedML_FEDERATED_OPTIMIZER_TURBO_AGGREGATE,
     FedML_FEDERATED_OPTIMIZER_ASYNC_FEDAVG,
-    FedML_FEDERATED_OPTIMIZER_DISLINUCB, # Add to the constants row
 )
 from ..core import ClientTrainer, ServerAggregator
 
@@ -58,8 +57,6 @@ class SimulatorSingleProcess:
             self.fl_trainer = TurboAggregateTrainer(dataset, model, device, args)
         elif args.federated_optimizer == FedML_FEDERATED_OPTIMIZER_CLASSICAL_VFL:
             self.fl_trainer = VflFedAvgAPI(args, device, dataset, model)
-        # elif args.federated_optimizer == FedML_FEDERATED_OPTIMIZER_DISLINUCB:
-        #     self.fl_trainer = DisLinUCBAPI9(args, device, dataset, )
 
         # elif args.fl_trainer == FedML_FEDERATED_OPTIMIZER_DECENTRALIZED_FL:
         #     self.fl_trainer = FedML_decentralized_fl()
@@ -93,7 +90,6 @@ class SimulatorMPI:
         from .mpi.fedavg_seq.FedAvgSeqAPI import FedML_FedAvgSeq_distributed
         from .mpi.async_fedavg.AsyncFedAvgSeqAPI import FedML_Async_distributed
         from .mpi.fednova.FedNovaAPI import FedML_FedNova_distributed
-        from .mpi.DislinUCB.DisLinUCBAPI import FedML_DisLinUCB_distributed
 
         if args.federated_optimizer == FedML_FEDERATED_OPTIMIZER_FEDAVG:
             FedML_FedAvg_distributed(
@@ -212,17 +208,6 @@ class SimulatorMPI:
             pass
         elif args.fl_trainer == FedML_FEDERATED_OPTIMIZER_FEDGAN:
             FedML_FedGan_distributed(args, args.process_id, args.worker_num, device, args.comm, model, dataset)
-        elif args.federated_optimizer == FedML_FEDERATED_OPTIMIZER_DISLINUCB:
-            FedML_DisLinUCB_distributed(
-            args, 
-            args.process_id,
-            args.worker_num,
-            args.comm,
-            device,
-            model, 
-            client_trainer=client_trainer,
-            server_aggregator=server_aggregator,
-            )
         else:
             raise Exception("Exception")
 
