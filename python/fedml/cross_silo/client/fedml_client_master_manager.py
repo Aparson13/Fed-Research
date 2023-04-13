@@ -62,7 +62,7 @@ class ClientMasterManager(FedMLCommManager):
             self.has_sent_online_msg = True
             self.send_client_status(0)
 
-            mlops.log_sys_perf(self.args)
+            # mlops.log_sys_perf(self.args)
 
     def handle_message_check_status(self, msg_params):
         self.send_client_status(0)
@@ -79,7 +79,7 @@ class ClientMasterManager(FedMLCommManager):
         logging.info("data_silo_index = %s" % str(data_silo_index))
 
         # Notify MLOps with training status.
-        self.report_training_status(MyMessage.MSG_MLOPS_CLIENT_STATUS_TRAINING)
+        # self.report_training_status(MyMessage.MSG_MLOPS_CLIENT_STATUS_TRAINING)
 
         # if self.args.scenario == FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL:
         #     global_model_params = convert_model_params_to_ddp(global_model_params)
@@ -109,7 +109,7 @@ class ClientMasterManager(FedMLCommManager):
             self.round_idx += 1
         else:
             self.send_client_status(0, ClientMasterManager.RUN_FINISHED_STATUS_FLAG)
-            mlops.log_training_finished_status()
+            # mlops.log_training_finished_status()
             self.finish()
 
     def handle_message_finish(self, msg_params):
@@ -118,21 +118,21 @@ class ClientMasterManager(FedMLCommManager):
 
     def cleanup(self):
         self.send_client_status(0, ClientMasterManager.RUN_FINISHED_STATUS_FLAG)
-        mlops.log_training_finished_status()
+        # mlops.log_training_finished_status()
         self.finish()
 
     def send_model_to_server(self, receive_id, weights, local_sample_num):
         tick = time.time()
-        mlops.event("comm_c2s", event_started=True, event_value=str(self.round_idx))
+        # mlops.event("comm_c2s", event_started=True, event_value=str(self.round_idx))
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_MODEL_TO_SERVER, self.client_real_id, receive_id,)
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, weights)
         message.add_params(MyMessage.MSG_ARG_KEY_NUM_SAMPLES, local_sample_num)
         self.send_message(message)
 
         MLOpsProfilerEvent.log_to_wandb({"Communication/Send_Total": time.time() - tick})
-        mlops.log_client_model_info(
-            self.round_idx+1, self.num_rounds, model_url=message.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS_URL),
-        )
+        # mlops.log_client_model_info(
+        #     self.round_idx+1, self.num_rounds, model_url=message.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS_URL),
+        # )
 
     def send_client_status(self, receive_id, status=ONLINE_STATUS_FLAG):
         logging.info("send_client_status")
@@ -147,13 +147,13 @@ class ClientMasterManager(FedMLCommManager):
         message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_STATUS, status)
         message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_OS, sys_name)
 
-        if status == ClientMasterManager.RUN_FINISHED_STATUS_FLAG:
-            mlops.log_server_payload(self.args.run_id, self.client_real_id, json.dumps(message.get_params()))
-        else:
+        if status != ClientMasterManager.RUN_FINISHED_STATUS_FLAG:
             self.send_message(message)
-
-    def report_training_status(self, status):
-        mlops.log_training_status(status)
+            # mlops.log_server_payload(self.args.run_id, self.client_real_id, json.dumps(message.get_params()))
+        # else:
+            
+    # def report_training_status(self, status):
+    #     # mlops.log_training_status(status)
 
     def sync_process_group(self, round_idx, model_params=None, client_index=None, src=0):
         logging.info("sending round number to pg")
@@ -166,11 +166,11 @@ class ClientMasterManager(FedMLCommManager):
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
 
-        mlops.event("train", event_started=True, event_value=str(self.round_idx))
+        # mlops.event("train", event_started=True, event_value=str(self.round_idx))
 
         A_uploadbuffer, b_uploadbuffer = self.trainer_dist_adapter.train(self.round_idx)
 
-        mlops.event("train", event_started=False, event_value=str(self.round_idx))
+        # mlops.event("train", event_started=False, event_value=str(self.round_idx))
 
         model = (A_uploadbuffer, b_uploadbuffer)
 
