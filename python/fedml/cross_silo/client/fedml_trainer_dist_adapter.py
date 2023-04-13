@@ -21,9 +21,7 @@ class TrainerDistAdapter:
         n_articles,
         model_trainer,
     ):
-        
-        AM = ArticleManager(dim, n_articles, 0, gaussianFeature, argv={'l2_limit': 1})
-        self.AM = AM.simulateArticlePool()
+        self.n_articles = n_articles
         self.client_rank = client_rank
         self.device = device
         self.args = args
@@ -92,9 +90,9 @@ class TrainerDistAdapter:
     # def update_model(self, model_params):
     #     self.trainer.update_model(model_params)
 
-    def update_dataset(self, client_index=None):
+    def update_dataset(self, model_params, client_index=None):
         _client_index = client_index or self.client_index
-        self.trainer.update_dataset(int(_client_index))
+        self.trainer.update_dataset(model_params, int(_client_index))
 
     def cleanup_pg(self):
         if self.args.scenario == FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL:

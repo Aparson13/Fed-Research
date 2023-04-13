@@ -39,19 +39,23 @@ class FedMLAggregator(object):
 
         self.args = args
 
-        self.worker_num = worker_num
+        self.client_num = worker_num
         self.device = device
         self.W_dict = dict()
         self.U_dict = dict()
+        self.model_dict = dict()
         self.flag_client_model_uploaded_dict = dict()
-        for idx in range(self.worker_num):
+        for idx in range(self.client_num):
             self.flag_client_model_uploaded_dict[idx] = False
 
     def get_global_model_params(self):
-        return self.aggregator.get_model_params()
+        # return self.aggregator.get_model_params()
+        return self.A_aggregated, self.B_aggregated
 
     def set_global_model_params(self, model_parameters):
-        self.aggregator.set_model_params(model_parameters)
+        # self.aggregator.set_model_params(model_parameters)
+        self.A_aggregated = model_parameters[0]
+        self.B_aggregated = model_parameters[1]
 
     def add_local_trained_result(self, index, model_params, sample_num):
         logging.info("add_model. index = %d" % index)
@@ -60,11 +64,11 @@ class FedMLAggregator(object):
         self.flag_client_model_uploaded_dict[index] = True
 
     def check_whether_one_recieve(self):
-        logging.debug("worker_num = {}".format(self.worker_num))
-        for idx in range(self.worker_num):
+        logging.debug("client_num = {}".format(self.client_num))
+        for idx in range(self.client_num):
             if self.flag_client_model_uploaded_dict[idx]:
                 return True
-        for idx in range(self.worker_num):
+        for idx in range(self.client_num):
             self.flag_client_model_uploaded_dict[idx] = False
         return False
 
@@ -83,7 +87,7 @@ class FedMLAggregator(object):
         model_W_list = []
         model_U_list = []
 
-        for idx in range(self.worker_num):
+        for idx in range(self.client_num):
             model_W_list.append((self.model_dict[idx][0])) # self.sample_num_dict[idx],
             model_U_list.append((self.model_dict[idx][1]))
             # training_num += self.sample_num_dict[idx]
