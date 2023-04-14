@@ -180,7 +180,7 @@ class ClientMasterManager(FedMLCommManager):
 
         self.send_model_to_server(0, model, 1)
     
-    def recieve_global_sync_signal(self):
+    def recieve_global_sync_signal(self, msg_params):
         self.trainer_.trainer.sync = True
 
     def run(self):
