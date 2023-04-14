@@ -164,20 +164,22 @@ class FedMLServerManager(FedMLCommManager):
             # mlops.event("server.wait", event_started=False, event_value=str(self.args.round_idx))
             # mlops.event("server.agg_and_eval", event_started=True, event_value=str(self.args.round_idx))
             tick = time.time()
-            global_model_params, model_list, model_list_idxes = self.aggregator.aggregate()
+            global_model_params = self.aggregator.aggregate()
 
-            logging.info("self.client_id_list_in_this_round = {}".format(self.client_id_list_in_this_round))
-            new_client_id_list_in_this_round = []
-            for client_idx in model_list_idxes:
-                new_client_id_list_in_this_round.append(self.client_id_list_in_this_round[client_idx])
-            logging.info("new_client_id_list_in_this_round = {}".format(new_client_id_list_in_this_round))
-            Context().add(Context.KEY_CLIENT_ID_LIST_IN_THIS_ROUND, new_client_id_list_in_this_round)
+            #model_list, model_list_idxes
+
+            # logging.info("self.client_id_list_in_this_round = {}".format(self.client_id_list_in_this_round))
+            # new_client_id_list_in_this_round = []
+            # for client_idx in model_list_idxes:
+            #     new_client_id_list_in_this_round.append(self.client_id_list_in_this_round[client_idx])
+            # logging.info("new_client_id_list_in_this_round = {}".format(new_client_id_list_in_this_round))
+            # Context().add(Context.KEY_CLIENT_ID_LIST_IN_THIS_ROUND, new_client_id_list_in_this_round)
 
             MLOpsProfilerEvent.log_to_wandb({"AggregationTime": time.time() - tick, "round": self.args.round_idx})
 
-            self.aggregator.test_on_server_for_all_clients(self.args.round_idx)
+            # self.aggregator.test_on_server_for_all_clients(self.args.round_idx)
 
-            self.aggregator.assess_contribution()
+            # self.aggregator.assess_contribution()
 
             # mlops.event("server.agg_and_eval", event_started=False, event_value=str(self.args.round_idx))
 

@@ -50,12 +50,12 @@ class FedMLAggregator(object):
 
     def get_global_model_params(self):
         # return self.aggregator.get_model_params()
-        return self.A_aggregated, self.B_aggregated
+        return self.A_aggregated, self.b_aggregated
 
     def set_global_model_params(self, model_parameters):
         # self.aggregator.set_model_params(model_parameters)
         self.A_aggregated = model_parameters[0]
-        self.B_aggregated = model_parameters[1]
+        self.b_aggregated = model_parameters[1]
 
     def add_local_trained_result(self, index, model_params, sample_num):
         logging.info("add_model. index = %d" % index)
