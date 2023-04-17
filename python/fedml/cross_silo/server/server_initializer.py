@@ -10,12 +10,11 @@ def init_server(
     rank,
     worker_num,
     model,
-    train_data_num,
-    train_data_global,
-    test_data_global,
-    train_data_local_dict,
-    test_data_local_dict,
-    train_data_local_num_dict,
+    dimension,
+    alpha,
+    lambda_,
+    delta_,
+    threshold,
     server_aggregator,
 ):
     if server_aggregator is None:
@@ -24,12 +23,11 @@ def init_server(
 
     # aggregator
     aggregator = FedMLAggregator(
-        train_data_global,
-        test_data_global,
-        train_data_num,
-        train_data_local_dict,
-        test_data_local_dict,
-        train_data_local_num_dict,
+        dimension,
+        alpha,
+        lambda_,
+        delta_,
+        threshold,
         worker_num,
         device,
         args,

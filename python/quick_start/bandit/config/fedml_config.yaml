@@ -1,6 +1,12 @@
 common_args:
-  training_type: "simulation"
+  training_type: "cross_silo"
+  scenario: "horizontal"
+  using_mlops: false
   random_seed: 0
+  config_version: release
+
+environment_args:
+  bootstrap: config/bootstrap.sh
 
 data_args:
   dataset: "mnist"
@@ -10,30 +16,41 @@ data_args:
 
 model_args:
   model: "lr"
+  model_file_cache_folder: "./model_file_cache" # will be filled by the server automatically
+  global_model_file_path: "./model_file_cache/global_model.pt"
 
 train_args:
-  federated_optimizer: "base_framework"
-  client_id_list: "[]"
-  client_num_in_total: 1000
-  client_num_per_round: 4
-  comm_round: 10
+  federated_optimizer: "DisLinUCB"
+  # for CLI running, this can be None; in MLOps deployment, `client_id_list` will be replaced with real-time selected devices
+  client_id_list:
+  client_num_in_total: 2
+  client_num_per_round: 2
+  comm_round: 5
   epochs: 1
   batch_size: 10
-  client_optimizer: sgd
+  client_optimizer: "DisLinUCB"
   learning_rate: 0.03
   weight_decay: 0.001
+  dimension: 10
+  alpha: 0.3
+  lambda_: 0.1
+  delta_: 1
+  threshold: 50
+  n_articles: 10
 
 validation_args:
-  frequency_of_the_test: 5
+  frequency_of_the_test: 1
 
 device_args:
-  worker_num: 4
+  worker_num: 2
   using_gpu: false
+  device_type: cpu
 
 comm_args:
-  backend: "MPI"
-  is_mobile: 0
-
+  backend: "MQTT_S3"
+  mqtt_config_path:
+  s3_config_path:
+  grpc_ipconfig_path: ./config/grpc_ipconfig.csv
 
 tracking_args:
    # When running on MLOps platform(open.fedml.ai), the default log path is at ~/fedml-client/fedml/logs/ and ~/fedml-server/fedml/logs/

@@ -11,6 +11,7 @@ class MyMessage(object):
     MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT = 2
     MSG_TYPE_S2C_CHECK_CLIENT_STATUS = 6
     MSG_TYPE_S2C_FINISH = 7
+    MSG_TYPE_S2C_GLOBAL_SYNC = 9
 
     # client to server
     MSG_TYPE_C2S_SEND_MODEL_TO_SERVER = 3

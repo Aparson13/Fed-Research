@@ -52,12 +52,17 @@ class ClientMasterManager(FedMLCommManager):
             MyMessage.MSG_TYPE_S2C_FINISH, self.handle_message_finish,
         )
 
+        self.register_message_receive_handler(
+            MyMessage.MSG_TYPE_S2C_GLOBAL_SYNC,
+            self.recieve_global_sync_signal,
+        )
+
     def handle_message_connection_ready(self, msg_params):
         if not self.has_sent_online_msg:
             self.has_sent_online_msg = True
             self.send_client_status(0)
 
-            mlops.log_sys_perf(self.args)
+            # mlops.log_sys_perf(self.args)
 
     def handle_message_check_status(self, msg_params):
         self.send_client_status(0)
@@ -74,14 +79,14 @@ class ClientMasterManager(FedMLCommManager):
         logging.info("data_silo_index = %s" % str(data_silo_index))
 
         # Notify MLOps with training status.
-        self.report_training_status(MyMessage.MSG_MLOPS_CLIENT_STATUS_TRAINING)
+        # self.report_training_status(MyMessage.MSG_MLOPS_CLIENT_STATUS_TRAINING)
 
-        if self.args.scenario == FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL:
-            global_model_params = convert_model_params_to_ddp(global_model_params)
-            self.sync_process_group(0, global_model_params, data_silo_index)
+        # if self.args.scenario == FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL:
+        #     global_model_params = convert_model_params_to_ddp(global_model_params)
+        #     self.sync_process_group(0, global_model_params, data_silo_index)
 
-        self.trainer_dist_adapter.update_dataset(int(data_silo_index))
-        self.trainer_dist_adapter.update_model(global_model_params)
+        # self.trainer_dist_adapter.update_dataset(1, int(data_silo_index))
+        # self.trainer_dist_adapter.update_model(global_model_params)
         self.round_idx = 0
 
         self.__train()
@@ -92,19 +97,19 @@ class ClientMasterManager(FedMLCommManager):
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
 
-        if self.args.scenario == FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL:
-            model_params = convert_model_params_to_ddp(model_params)
-            self.sync_process_group(self.round_idx, model_params, client_index)
+        # if self.args.scenario == FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL:
+        #     model_params = convert_model_params_to_ddp(model_params)
+        #     self.sync_process_group(self.round_idx, model_params, client_index)
 
-        self.trainer_dist_adapter.update_dataset(int(client_index))
+        self.trainer_dist_adapter.update_dataset(model_params, int(client_index),)
         logging.info("current round index {}, total rounds {}".format(self.round_idx, self.num_rounds))
-        self.trainer_dist_adapter.update_model(model_params)
+        # self.trainer_dist_adapter.update_model(model_params)
         if self.round_idx < self.num_rounds:
             self.__train()
             self.round_idx += 1
         else:
             self.send_client_status(0, ClientMasterManager.RUN_FINISHED_STATUS_FLAG)
-            mlops.log_training_finished_status()
+            # mlops.log_training_finished_status()
             self.finish()
 
     def handle_message_finish(self, msg_params):
@@ -113,21 +118,21 @@ class ClientMasterManager(FedMLCommManager):
 
     def cleanup(self):
         self.send_client_status(0, ClientMasterManager.RUN_FINISHED_STATUS_FLAG)
-        mlops.log_training_finished_status()
+        # mlops.log_training_finished_status()
         self.finish()
 
     def send_model_to_server(self, receive_id, weights, local_sample_num):
         tick = time.time()
-        mlops.event("comm_c2s", event_started=True, event_value=str(self.round_idx))
+        # mlops.event("comm_c2s", event_started=True, event_value=str(self.round_idx))
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_MODEL_TO_SERVER, self.client_real_id, receive_id,)
         message.add_params(MyMessage.MSG_ARG_KEY_MODEL_PARAMS, weights)
         message.add_params(MyMessage.MSG_ARG_KEY_NUM_SAMPLES, local_sample_num)
         self.send_message(message)
 
         MLOpsProfilerEvent.log_to_wandb({"Communication/Send_Total": time.time() - tick})
-        mlops.log_client_model_info(
-            self.round_idx+1, self.num_rounds, model_url=message.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS_URL),
-        )
+        # mlops.log_client_model_info(
+        #     self.round_idx+1, self.num_rounds, model_url=message.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS_URL),
+        # )
 
     def send_client_status(self, receive_id, status=ONLINE_STATUS_FLAG):
         logging.info("send_client_status")
@@ -142,13 +147,13 @@ class ClientMasterManager(FedMLCommManager):
         message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_STATUS, status)
         message.add_params(MyMessage.MSG_ARG_KEY_CLIENT_OS, sys_name)
 
-        if status == ClientMasterManager.RUN_FINISHED_STATUS_FLAG:
-            mlops.log_server_payload(self.args.run_id, self.client_real_id, json.dumps(message.get_params()))
-        else:
+        if status != ClientMasterManager.RUN_FINISHED_STATUS_FLAG:
             self.send_message(message)
-
-    def report_training_status(self, status):
-        mlops.log_training_status(status)
+            # mlops.log_server_payload(self.args.run_id, self.client_real_id, json.dumps(message.get_params()))
+        # else:
+            
+    # def report_training_status(self, status):
+    #     # mlops.log_training_status(status)
 
     def sync_process_group(self, round_idx, model_params=None, client_index=None, src=0):
         logging.info("sending round number to pg")
@@ -161,17 +166,22 @@ class ClientMasterManager(FedMLCommManager):
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
 
-        mlops.event("train", event_started=True, event_value=str(self.round_idx))
+        # mlops.event("train", event_started=True, event_value=str(self.round_idx))
 
-        weights, local_sample_num = self.trainer_dist_adapter.train(self.round_idx)
+        A_uploadbuffer, b_uploadbuffer = self.trainer_dist_adapter.train(self.round_idx)
 
-        mlops.event("train", event_started=False, event_value=str(self.round_idx))
+        # mlops.event("train", event_started=False, event_value=str(self.round_idx))
+
+        model = (A_uploadbuffer, b_uploadbuffer)
 
         # the current model is still DDP-wrapped under cross-silo-hi setting
-        if self.args.scenario == FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL:
-            weights = convert_model_params_from_ddp(weights)
+        # if self.args.scenario == FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL:
+        #     weights = convert_model_params_from_ddp(weights)
 
-        self.send_model_to_server(0, weights, local_sample_num)
+        self.send_model_to_server(0, model, 1)
+    
+    def recieve_global_sync_signal(self, msg_params):
+        self.trainer_.trainer.sync = True
 
     def run(self):
         super().run()
