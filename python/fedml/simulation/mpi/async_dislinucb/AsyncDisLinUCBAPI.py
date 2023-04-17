@@ -6,6 +6,7 @@ from ....ml.trainer.ucb_trainer_creator import create_model_trainer
 from .AsyncDisLinUCBTrainer import AsyncDisLinUCBTrainer
 from .AsyncDisLinUCBClientManager import AsyncDisLinUCBClientManager
 from .AsyncDisLinUCBAggregator import AsyncDisLinUCBAggregator
+from .AsyncDisLinUCBServerManager import AsyncDisLinUCBServerManager
 
 def FedML_AsyncDisLinUCB_distributed(
     args, process_id, worker_number, comm, device, dataset, model, model_trainer=None, preprocessed_sampling_lists=None,
@@ -33,9 +34,7 @@ def FedML_AsyncDisLinUCB_distributed(
         local_articles,
         global_articles,
         local_articles_num_dict,
-        local_articles_dict,
-        gammaD,
-        gammaU,
+        local_articles_dict
     ] = dataset
 
     FedMLAttacker.get_instance().init(args)
@@ -68,7 +67,6 @@ def FedML_AsyncDisLinUCB_distributed(
             model,
             articles_num,
             global_articles,
-            gammaD,
             model_trainer,
             preprocessed_sampling_lists
         )
@@ -103,7 +101,6 @@ def init_server(
     model,
     articles_num,
     global_articles,
-    gammaD,
     model_trainer,
     preprocessed_sampling_lists=None,
 ):
@@ -132,7 +129,6 @@ def init_server(
         worker_num,
         device,
         args,
-        gammaD,
         model_trainer,
     )
 

@@ -19,7 +19,6 @@ class AsyncDisLinUCBAggregator(object):
         worker_num,
         device,
         args,
-        gammaD,
         model_trainer,
     ):
         self.trainer = model_trainer
@@ -31,7 +30,7 @@ class AsyncDisLinUCBAggregator(object):
         #self.all_train_data_num = all_train_data_num
         self.articles_num = articles_num
         self.global_articles = global_articles
-        self.gammaD = gammaD
+        # self.gammaD = gammaD
         # self.train_data_local_dict = train_data_local_dict
         # self.test_data_local_dict = test_data_local_dict
         # self.train_data_local_num_dict = train_data_local_num_dict

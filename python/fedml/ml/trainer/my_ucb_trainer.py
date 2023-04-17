@@ -4,7 +4,7 @@ from random import sample, shuffle
 class UCBTrainer(object):
 
 
-    def __init__(self, dimension, lamda, delta, alpha, noise,local_articles, gammaU, gammaD, args):
+    def __init__(self, dimension, lamda, delta, alpha, noise,local_articles, gammaU, args):
         #self.model = model
         self.local_articles = local_articles
         self.id = 0
@@ -16,7 +16,6 @@ class UCBTrainer(object):
         self.d = dimension
         self.alpha_ = alpha
         self.gammaU = gammaU
-        self.gammaD = gammaD
         # self.local_train_dataset = None
         # self.local_test_dataset = None
         # self.local_sample_number = 0

@@ -188,7 +188,7 @@ class ModelTrainerCLS(ClientTrainer):
         mean = np.dot(self.UserTheta, article_FeatureVector)
         var = np.sqrt(np.dot(np.dot(article_FeatureVector, self.AInv), article_FeatureVector))
         pta = mean + alpha * var
-        return pt
+        return pta
 
     def getReward(self, user, pickedArticle):
         inner_prod = np.dot(user.theta, pickedArticle.featureVector)
