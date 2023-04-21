@@ -36,14 +36,14 @@ class TrainerDistAdapter:
         # else:
         #     model_trainer.model = model
 
-        client_index = client_rank - 1
+        self.client_index = client_rank - 1
 
         # model_trainer.set_id(client_index)
 
         logging.info("Initiating Trainer")
         self.trainer = self.get_trainer(
             args,
-            client_index,
+            self.client_index,
             device,
             dim,
             lambda_,

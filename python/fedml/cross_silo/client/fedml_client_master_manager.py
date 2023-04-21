@@ -10,8 +10,10 @@ from fedml.constants import FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL
 from .message_define import MyMessage
 from .utils import convert_model_params_from_ddp, convert_model_params_to_ddp
 from ...core.distributed.fedml_comm_manager import FedMLCommManager
+
 from ...core.distributed.communication.message import Message
 from ...core.mlops.mlops_profiler_event import MLOpsProfilerEvent
+from multiprocessing import Process
 
 
 class ClientMasterManager(FedMLCommManager):
@@ -68,6 +70,8 @@ class ClientMasterManager(FedMLCommManager):
         self.send_client_status(0)
 
     def handle_message_init(self, msg_params):
+        
+
         if self.is_inited:
             return
 
@@ -75,6 +79,8 @@ class ClientMasterManager(FedMLCommManager):
 
         global_model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         data_silo_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
+
+        print("-"*50 + "\n"*10 + "Handling initial Message" + "\n"*2 + "global_params: " + str(global_model_params) + "\n"*10 + "-"*50)
 
         logging.info("data_silo_index = %s" % str(data_silo_index))
 
@@ -96,6 +102,7 @@ class ClientMasterManager(FedMLCommManager):
         logging.info("handle_message_receive_model_from_server.")
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         client_index = msg_params.get(MyMessage.MSG_ARG_KEY_CLIENT_INDEX)
+        print("-"*50 + "\n"*10 + "Message recieved from Server to " + str(client_index) + "\n"*2 + "model_params: " + str(model_params) + "\n"*10 + "-"*50)
 
         # if self.args.scenario == FEDML_CROSS_SILO_SCENARIO_HIERARCHICAL:
         #     model_params = convert_model_params_to_ddp(model_params)
@@ -104,6 +111,7 @@ class ClientMasterManager(FedMLCommManager):
         self.trainer_dist_adapter.update_dataset(model_params, int(client_index),)
         logging.info("current round index {}, total rounds {}".format(self.round_idx, self.num_rounds))
         # self.trainer_dist_adapter.update_model(model_params)
+    
         if self.round_idx < self.num_rounds:
             self.__train()
             self.round_idx += 1
@@ -122,6 +130,7 @@ class ClientMasterManager(FedMLCommManager):
         self.finish()
 
     def send_model_to_server(self, receive_id, weights, local_sample_num):
+        print("-"*50 + "\n"*10 + "Sending Model to server" + "\n"*2 + "model_params: " + str(weights) + "\n"*10 + "-"*50)
         tick = time.time()
         # mlops.event("comm_c2s", event_started=True, event_value=str(self.round_idx))
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_MODEL_TO_SERVER, self.client_real_id, receive_id,)
@@ -165,11 +174,14 @@ class ClientMasterManager(FedMLCommManager):
 
     def __train(self):
         logging.info("#######training########### round_id = %d" % self.round_idx)
-
+        print("-"*50 + "\n"*10 + "Training Beginning" + "\n"*10 + "-"*50)
         # mlops.event("train", event_started=True, event_value=str(self.round_idx))
+    
+        # p1= Process(target=recieve_global_sync_signal, args=(self))
+        # p1.start()
 
         A_uploadbuffer, b_uploadbuffer = self.trainer_dist_adapter.train(self.round_idx)
-
+        # p1.join()
         # mlops.event("train", event_started=False, event_value=str(self.round_idx))
 
         model = (A_uploadbuffer, b_uploadbuffer)
@@ -181,7 +193,9 @@ class ClientMasterManager(FedMLCommManager):
         self.send_model_to_server(0, model, 1)
     
     def recieve_global_sync_signal(self, msg_params):
-        self.trainer_.trainer.sync = True
+
+            print("-"*50 + "\n"*10 + "Received Global sync signal" + "\n"*10 + "-"*50)
+            self.trainer_dist_adapter.trainer.sync = True
 
     def run(self):
         super().run()
