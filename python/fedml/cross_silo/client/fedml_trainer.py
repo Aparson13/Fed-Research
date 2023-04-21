@@ -6,6 +6,10 @@ from ...core.mlops.mlops_profiler_event import MLOpsProfilerEvent
 from ..util_functions import featureUniform, gaussianFeature, dsigmoid, sigmoid
 import numpy as np
 from .ArticleManager import ArticleManager
+import random
+from datetime import datetime
+from random import sample, shuffle
+
 
 class FedMLTrainer(object):
     def __init__(
@@ -23,7 +27,8 @@ class FedMLTrainer(object):
         
         self.d = dim
         self.lambda_ = lambda_
-        self.delta_ = delta_
+        # self.delta_ = delta_
+        self.delta_ = 1e-1
         self.alpha = alpha
         self.device = device
         self.client_index = client_index
@@ -35,26 +40,33 @@ class FedMLTrainer(object):
         self.A_uploadbuffer = np.zeros((self.d, self.d))
         self.b_uploadbuffer = np.zeros(self.d)
         self.numObs_uploadbuffer = 0
+        self.poolArticleSize = 25
         # for computing UCB
         self.AInv = np.linalg.inv(self.A_local+self.lambda_ * np.identity(n=self.d))
+        self.NoiseScale = 0.1
         self.UserTheta = np.zeros(self.d)
-        self.alpha_t = np.sqrt(self.d * np.log(1 + self.numObs_local)/ (self.d * self.lambda_)) + 2 * np.log(1 / self.delta_) + np.sqrt(self.lambda_)
+        self.alpha_t = self.NoiseScale * (np.sqrt(self.d * np.log(1 + self.numObs_local)/ (self.d * self.lambda_)) + 2 * np.log(1 / self.delta_) + np.sqrt(self.lambda_))
         self.reward_model = "linear"
         self.sync = False
         AM = ArticleManager(dim, n_articles, 0, gaussianFeature, argv={'l2_limit': 1})
         self.AM = AM.simulateArticlePool()
+        self.regulateArticlePool()
 
     def train(self, args):
 
         maxPTA = float('-inf')
+        random.seed(self.client_index)
         articlePicked = None
         numerator = np.linalg.det(self.A_local+self.lambda_ * np.identity(n=self.d))
         denominator = np.linalg.det(self.A_local-self.A_uploadbuffer+self.lambda_ * np.identity(n=self.d))
-
-        while(np.log(numerator/denominator)*(self.numObs_uploadbuffer) < self.threshold and self.sync == False):
-            for x in self.AM: 
+        training_round = 0
+        
+        while(np.log(numerator/denominator)*(self.numObs_uploadbuffer) < (self.threshold * (self.client_index+1)**2) and self.sync == False):
+            
+            for x in self.articlePool: 
                 x_pta = self.getUCB(self.alpha_t, x.featureVector)
-                # pick article with highest UCB score
+                x_pta = x_pta 
+                # pick article with highest UCB score *  random.random()
                 # Going to need an arm class
                 if maxPTA < x_pta:
                     articlePicked = x
@@ -69,6 +81,8 @@ class FedMLTrainer(object):
             else:
                 raise ValueError
             
+            # articlePicked.featureVector = articlePicked.featureVector * random.random()
+            
             self.A_local += np.outer(articlePicked.featureVector, articlePicked.featureVector)
             self.b_local += articlePicked.featureVector * reward
             self.numObs_local += 1
@@ -80,13 +94,32 @@ class FedMLTrainer(object):
             self.AInv = np.linalg.inv(self.A_local+self.lambda_ * np.identity(n=self.d))
             self.UserTheta = np.dot(self.AInv, self.b_local)
 
-            self.alpha_t = np.sqrt(
+            self.alpha_t = self.NoiseScale * np.sqrt(
                 self.d * np.log(1 + (self.numObs_local) / (self.d * self.lambda_)) + 2 * np.log(1 / self.delta_)) + np.sqrt(
                 self.lambda_)
             
+            
             numerator = np.linalg.det(self.A_local+self.lambda_ * np.identity(n=self.d))
             denominator = np.linalg.det(self.A_local-self.A_uploadbuffer+self.lambda_ * np.identity(n=self.d))
+            training_round = training_round  + 1
 
+            # print("-"*50 + "\n"*10 + "Client index: " + str(self.client_index) + "\n"*2
+            #        +  "MaxPTA:" + str(maxPTA) + "\n"*2
+            #     #    +  "det(V):" + str(np.log(numerator/denominator)*(self.numObs_uploadbuffer)) + "\n"*2
+            #     #    + "Threshold: " + str(self.threshold) + "\n"*2 
+            #     #    + "Sync Signal: " + str(self.sync) + "\n"*2 
+            #     #    + "Training Round: " + str(training_round) + "\n"*2 
+            #     #    + "Time: " + str(datetime.now()) + "\n"*2 
+            #        + "\n"*10 + "-" *50)
+        print("-"*50 + "\n"*10 + "Client index: " + str(self.client_index) + "\n"*2
+                   +  "MaxPTA:" + str(maxPTA) + "\n"*2
+                #    +  "det(V):" + str(np.log(numerator/denominator)*(self.numObs_uploadbuffer)) + "\n"*2
+                #    + "Threshold: " + str(self.threshold) + "\n"*2 
+                #    + "Sync Signal: " + str(self.sync) + "\n"*2 
+                #    + "Training Round: " + str(training_round) + "\n"*2 
+                #    + "Time: " + str(datetime.now()) + "\n"*2 
+                   + "\n"*10 + "-" *50)
+        print("-"*50 + "\n"*10 + "Training Finished after " + str(training_round) + " rounds."  "\n"*2 + "Sync signal: " + str(self.sync)+ "\n"*10 + "-"*50)
         return self.A_uploadbuffer, self.b_uploadbuffer
 
 
@@ -101,26 +134,31 @@ class FedMLTrainer(object):
     
 
     def update_dataset(self, global_model_params, client_index):
-        articlePicked_FeatureVector = global_model_params[0]
-        click = global_model_params[1]
-        self.A_local += np.outer(articlePicked_FeatureVector, articlePicked_FeatureVector)
-        self.b_local += articlePicked_FeatureVector * click
+        print("-"*50 + "\n"*10 + "Updating the Dataset. " + "\n"*10 + "-"*50)
+        self.A_local = global_model_params[0]
+        self.b_local = global_model_params[1]
+        # self.A_local += np.outer(articlePicked_FeatureVector, articlePicked_FeatureVector)
+        # self.b_local += articlePicked_FeatureVector * click
         self.numObs_local += 1
 
-        self.A_uploadbuffer = np.zeros((self.dimension, self.dimension))
-        self.b_uploadbuffer = np.zeros(self.dimension)
+        self.A_uploadbuffer = np.zeros((self.d, self.d))
+        self.b_uploadbuffer = np.zeros(self.d)
         self.numObs_uploadbuffer = 0
 
-        self.AInv = np.linalg.inv(self.A_local+self.lambda_ * np.identity(n=self.d))
-        self.UserTheta = np.dot(self.AInv, self.b_local)
+        # self.AInv = np.linalg.inv(self.A_local+self.lambda_ * np.identity(n=self.d))
+        # self.UserTheta = np.dot(self.AInv, self.b_local)
 
-        self.alpha_t = np.sqrt(
-        self.d * np.log(1 + (self.numObs_local) / (self.d * self.lambda_)) + 2 * np.log(1 / self.delta_)) + np.sqrt(
-        self.lambda_)
-        self.trainer.sync = False
+        # self.alpha_t = np.sqrt(
+        # self.d * np.log(1 + (self.numObs_local) / (self.d * self.lambda_)) + 2 * np.log(1 / self.delta_)) + np.sqrt(
+        # self.lambda_)
+        self.sync = False
 
     def getTheta(self):
         return self.UserTheta
+    
+    def regulateArticlePool(self):
+        # Randomly generate articles
+        self.articlePool= sample(self.AM, self.poolArticleSize)
     # def __init__(
     #     self,
     #     client_index,

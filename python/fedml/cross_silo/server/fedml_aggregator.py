@@ -93,9 +93,9 @@ class FedMLAggregator(object):
             # training_num += self.sample_num_dict[idx]
         logging.info("len of self.model_W_dict[idx] = " + str(len(self.W_dict)))
         logging.info("len of self.model_U_dict[idx] = " + str(len(self.U_dict)))
-
-        Wsyn = self.A_aggregated + sum(model_W_list)
-        Usyn = self.b_aggregated + sum(model_U_list)
+   
+        Wsyn = self.A_aggregated + np.add.reduce(model_W_list)
+        Usyn = self.b_aggregated + np.add.reduce(model_U_list)
         
         self.set_global_model_params((Wsyn, Usyn))
         end_time = time.time()

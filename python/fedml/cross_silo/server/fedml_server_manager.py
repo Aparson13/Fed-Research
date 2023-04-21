@@ -37,7 +37,8 @@ class FedMLServerManager(FedMLCommManager):
         super().run()
 
     def send_init_msg(self):
-        global_model_params = self.aggregator.get_global_model_params()
+        global_model_params = (0, 0)
+        # self.aggregator.get_global_model_params()
 
         global_model_url = None
         global_model_key = None
@@ -140,10 +141,12 @@ class FedMLServerManager(FedMLCommManager):
             self.process_finished_status(client_status, msg_params)
 
     def handle_message_receive_model_from_client(self, msg_params):
+        
         sender_id = msg_params.get(MyMessage.MSG_ARG_KEY_SENDER)
         # mlops.event("comm_c2s", event_started=False, event_value=str(self.args.round_idx), event_edge_id=sender_id)
         model_params = msg_params.get(MyMessage.MSG_ARG_KEY_MODEL_PARAMS)
         local_sample_number = msg_params.get(MyMessage.MSG_ARG_KEY_NUM_SAMPLES)
+        print("-"*50 + "\n"*10 + "Message Recieved from send_id " + str(sender_id) + "\n"*2 + "model_params: " + str(model_params) + "\n"*10 + "-"*50)
 
         self.aggregator.add_local_trained_result(
             self.client_real_ids.index(sender_id), model_params, local_sample_number
@@ -153,7 +156,7 @@ class FedMLServerManager(FedMLCommManager):
         logging.info("b_one_received = " + str(b_one_received))
         
         if b_one_received:
-            for receiver_id in range(1, self.size):
+            for receiver_id in self.client_id_list_in_this_round:
                 self.send_sync_signal(
                 receiver_id
                 )
@@ -165,6 +168,8 @@ class FedMLServerManager(FedMLCommManager):
             # mlops.event("server.agg_and_eval", event_started=True, event_value=str(self.args.round_idx))
             tick = time.time()
             global_model_params = self.aggregator.aggregate()
+
+            print("-"*50 + "\n"*10 + "Finished Aggregating" + "\n"*10 + "-"*50)
 
             #model_list, model_list_idxes
 
@@ -262,6 +267,8 @@ class FedMLServerManager(FedMLCommManager):
 
     def send_message_sync_model_to_client(self, receive_id, global_model_params, client_index,
                                           global_model_url=None, global_model_key=None):
+        
+        print("-"*50 + "\n"*10 + "Sending Server Message Sync to Client" + "\n"*10 + "-"*50)
         tick = time.time()
         logging.info("send_message_sync_model_to_client. receive_id = %d" % receive_id)
         message = Message(MyMessage.MSG_TYPE_S2C_SYNC_MODEL_TO_CLIENT, self.get_sender_id(), receive_id, )
@@ -282,6 +289,8 @@ class FedMLServerManager(FedMLCommManager):
         return global_model_url, global_model_key
 
     def send_sync_signal(self, receive_id):
+
+        print("-"*50 + "\n"*10 + "Sending Sync Signal to client" + "\n"*10 + "-"*50)
         message = Message(
             MyMessage.MSG_TYPE_S2C_GLOBAL_SYNC,
             self.get_sender_id(),
