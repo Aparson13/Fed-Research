@@ -1,3 +1,9 @@
+# Aaron Parson's Contributor Note
+
+This is the open source software that I conducted my Federated Machine Learning Research. In this software, I was able to add a new simulation architecture called bandit in which the Multi-Arm Bandit problem was able to run in a reinforcement learning version of the Cross-Silo environment.
+
+
+
 # FedML: The Community Building Open and Collaborative AI Anywhere at Any Scale
 
 <div align="center">
